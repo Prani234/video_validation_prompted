@@ -40,3 +40,5 @@ streamlit==1.37.0
 # -------------------------------
 numba==0.58.1
 tqdm==4.66.1
+librosa
+rapidfuzz
