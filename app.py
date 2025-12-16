@@ -18,11 +18,12 @@ from ultralytics import YOLO
 
 # whisper (ensure installed)
 import whisper
+import librosa
 
 # embeddings & toxicity
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
-
+from video_extraction import extract_insights
 # -----------------------
 # Configurable thresholds
 # -----------------------
@@ -111,7 +112,8 @@ def sample_frames(video_path: str, sample_fps: int = FRAME_SAMPLE_FPS) -> Tuple[
 @st.cache_resource
 def load_yolo(weights: str = "yolov8n.pt"):
     return YOLO(weights)
-
+#This function uses YOLOv8 to detect people in video frames and validate the video 
+# based on presence, count, movement, size stability, and centering of a single person.
 def analyze_video_yolo(video_path: str, model: YOLO) -> Dict[str, Any]:
     frames, _ = sample_frames(video_path, FRAME_SAMPLE_FPS)
     total = len(frames)
@@ -818,6 +820,21 @@ if submit:
     st.write("## Final Decision")
     if final_accept:
         st.success("✅ VIDEO ACCEPTED — both video and audio checks passed.")
+
+        y, sr = librosa.load(audio_tmp, sr=None)
+        duration_sec = len(y) / sr
+
+        insights = extract_insights(
+            transcript_text,
+            trans_res["segments"],
+            audio_tmp,
+            duration_sec,
+            resume_json,
+            embedder
+        )
+
+        st.write("## Candidate Insights")
+        st.json(insights)
     else:
         st.error("❌ VIDEO REJECTED — video and/or audio checks failed.")
         st.write("Combined reasons:")
